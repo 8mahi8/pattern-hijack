@@ -95,7 +95,16 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
   .card em {margin-bottom:5px}
   .card small {font-size:11px;line-height:1.4}
   .btn,.bigBtn {min-height:44px;touch-action:manipulation}
-  #restart {flex-shrink:0}
+  /* Keep RESTART available above the full-screen mobile overlays. */
+  #restart {
+    position:fixed;
+    top:max(10px, env(safe-area-inset-top));
+    right:max(12px, env(safe-area-inset-right));
+    z-index:1100;
+    flex-shrink:0;
+    background:#172233;
+    box-shadow:0 3px 14px rgba(0,0,0,.35);
+  }
 }
 
 </style>
