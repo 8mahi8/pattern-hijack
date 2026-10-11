@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090f1f">
+<title>PATTERN HIJACK V2A — WEAPON × AIM TEST</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;--edge:#33435c;--fg:#e9efff}
+*{box-sizing:border-box} html,body{margin:0;min-height:100%;background:#080d1a;color:var(--fg)}
+body{padding:clamp(10px,2vw,20px)} .shell{max-width:1060px;margin:auto}
+.heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+h1{font-size:clamp(19px,3.2vw,29px);margin:0;letter-spacing:.025em} .subtitle{font-size:11px;color:#9fb1d0;margin-top:4px}
+button{color:inherit;font:inherit;cursor:pointer} .small{background:#18263f;border:1px solid #425575;border-radius:10px;padding:9px 15px;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:9px}
+.stat{background:#111a2d;border:1px solid #273750;border-radius:10px;text-align:center;padding:8px 4px;font-size:11px;color:#a9bedc}
+.stat b{display:block;font-size:17px;color:white;font-variant-numeric:tabular-nums;margin-top:2px}
+.arena{position:relative;border:1px solid #365071;border-radius:17px;overflow:hidden;height:clamp(330px,63dvh,620px);box-shadow:0 25px 70px #0008;background:#071025;touch-action:none}
+#cv{width:100%;height:100%;display:block;touch-action:none}
+.arena-top{position:absolute;top:12px;left:12px;right:12px;pointer-events:none;display:flex;gap:8px;align-items:flex-start;justify-content:space-between;text-shadow:0 2px 8px black}
+.mini{border:1px solid #ffffff20;border-radius:9px;background:#061023cc;padding:7px 10px;font-weight:700;font-size:11px}
+#message{position:absolute;top:22%;left:50%;transform:translateX(-50%);color:#fff;font-size:clamp(18px,3vw,32px);font-weight:1000;white-space:nowrap;pointer-events:none;text-shadow:0 4px 20px #000;opacity:0;text-align:center}
+.controls{display:flex;gap:8px;align-items:stretch;margin-top:10px}
+.controls .hint{flex:1;display:flex;align-items:center;font-size:12px;color:#a6b6d2;line-height:1.5}
+#hijack{flex:0 0 auto;min-width:min(45%,260px);min-height:67px;border-radius:14px;border:1px solid #7895b2;background:#1a2a3f;color:#becfe9;font-weight:1000;box-shadow:0 5px 12px #0005;touch-action:manipulation;font-size:15px}
+#hijack.ready{color:#09111d;background:linear-gradient(135deg,#a1f9fc,#d3fdff);border-color:white;box-shadow:0 0 18px #61d7e777}
+#hijack b{display:block;font-size:19px}#hijack small{display:block;font-size:10px;margin-top:2px;font-weight:750}
+.foot{color:#8296b8;font-size:11px;margin-top:9px;line-height:1.6}
+.loadout{display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:8px;margin:10px 0 0}
+.loadout button{border:1px solid #425575;border-radius:10px;background:#17243a;color:#bdcdea;padding:11px 9px;font-size:12px;font-weight:850;text-align:center}
+.loadout button.active{background:#254c61;border-color:#88e9e2;color:white;box-shadow:inset 0 0 0 1px #88e9e255}
+.loadout button span{font-weight:550;font-size:10px;color:#a5bcd4;display:block;margin-top:4px}
+.startChoices{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px}
+.startChoices .main-btn{min-width:220px}
+.startChoices .secondary{background:#23334f;color:#e5f4ff;border:1px solid #627b9e}
+@media(max-width:570px){.loadout{gap:5px}.loadout button{padding:8px 4px;font-size:10px}.loadout button span{display:none}}
+.modal{position:absolute;inset:0;display:none;z-index:10;background:#060d1bea;backdrop-filter:blur(7px);padding:12px;overflow-y:auto;align-items:center;justify-content:center}
+.modal.show{display:flex}.panel{max-height:100%;overflow-y:auto;flex-shrink:0;width:min(100%,680px);border:1px solid #526787;border-radius:17px;background:linear-gradient(150deg,#17243a,#101a2b);padding:clamp(16px,4vw,30px);text-align:center;box-shadow:0 20px 65px #000b}
+.panel h2{font-size:clamp(24px,5vw,37px);margin:0 0 8px;letter-spacing:.04em}.panel p{font-size:13px;line-height:1.8;color:#c8d7ed;margin:10px 0 20px}
+.main-btn{border:0;border-radius:12px;background:#e4faff;color:#07111c;font-size:16px;font-weight:950;padding:13px 28px;min-height:49px}
+.panel .tiny{font-size:11px;color:#91a9cc;margin-top:16px}
+.upgrades{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;text-align:left}
+.upgrade{padding:14px;border:1px solid #526787;background:#21314a;border-radius:11px;min-height:156px;text-align:left;touch-action:manipulation}
+.upgrade:hover,.upgrade:focus-visible{border-color:#b4f9fa;background:#294263;outline:0}
+.upgrade b{display:block;color:#fff;font-size:16px}.upgrade strong{display:block;color:#a7faf9;font-size:23px;margin:9px 0 4px}.upgrade span{font-size:12px;color:#c7d7ee;line-height:1.5;display:block}
+@media(max-width:570px){.modal{position:fixed;inset:0;align-items:safe center;z-index:1000;padding:max(14px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom))}.modal .panel{max-height:calc(100dvh - 28px)}.stats{gap:5px}.stat{padding:6px 1px;font-size:10px}.stat b{font-size:15px}.controls .hint{font-size:11px}.upgrades{grid-template-columns:1fr;gap:7px}.upgrade{min-height:0;padding:10px 13px}.upgrade strong{font-size:17px;margin:4px 0 2px}.upgrade b{font-size:14px}.upgrade span{font-size:11px}.panel{padding:15px}.panel p{font-size:12px}.arena-top{left:7px;right:7px;top:7px}.mini{font-size:10px;padding:5px 8px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="heading"><div><h1>PATTERN HIJACK <span style="color:#88f1ef">V2</span></h1><div class="subtitle">AIM × WEAPON TEST · PC優先の比較試作 · 既存v1.1.1とは別物</div></div><button class="small" id="restart">RESTART</button></div>
+<div class="stats"><div class="stat">HP <b id="hp">♥ ♥ ♥ ♥ ♥</b></div><div class="stat">残り時間 <b id="time">75</b></div><div class="stat">K.O. <b id="ko">0</b></div><div class="stat">HIJACK <b id="hc">0</b></div></div>
+<div class="arena" id="arena">
+<canvas id="cv" aria-label="ゲームフィールド"></canvas>
+<div class="arena-top"><div id="mission" class="mini">射程に近づいて攻撃、好きな瞬間に弾を奪う</div><div id="reachLabel" class="mini">BLADE · REACH 100</div></div><div id="message"></div>
+<div id="intro" class="modal show"><div class="panel"><h2>WEAPON × AIM TEST</h2><p><b>2種類の武器を切り替えながら戦おう。</b><br>
+<b>BLADE</b>：短射程・広い斬撃。　<b>SPEAR</b>：長射程・細い貫通突き。<br>
+マウス照準では<b>向けた方向だけ</b>自動攻撃。自動照準では<b>最も近い敵</b>へ自動攻撃する。<br>
+攻撃でゲージを溜め、敵弾が多い瞬間に<strong style="color:#8ff5ed">SPACEで手動HIJACK</strong>。75秒の比較試作。</p>
+<div class="startChoices"><button class="main-btn" id="startMouse">MOUSE AIMで開始</button><button class="main-btn secondary" id="startAuto">AUTO AIMで開始</button></div>
+<div class="tiny">PC：WASD 移動 · マウス 照準 · 1/2 武器切替 · F 照準方式切替 · SPACE HIJACK<br>プレイ中いつでも武器と照準を変更できる。30秒で強化を1つ選べる。</div></div></div>
+<div id="upgradeModal" class="modal"><div class="panel"><h2>CHOOSE YOUR STYLE</h2><p>強化はそれぞれ戦い方が変わる。今のまま射程を伸ばす？ 攻撃を早くする？ HIJACKを広げる？</p><div class="upgrades">
+<button class="upgrade" data-upgrade="reach"><b>LONG REACH</b><strong>射程 +50%</strong><span>遠くの敵にも攻撃が届く。安全な位置から戦いやすくなる。</span></button>
+<button class="upgrade" data-upgrade="speed"><b>QUICK ATTACK</b><strong>攻撃速度 +65%</strong><span>武器を問わず攻撃間隔を短縮。命中回数とゲージ蓄積が増える。</span></button>
+<button class="upgrade" data-upgrade="hijack"><b>WIDE HIJACK</b><strong>奪取範囲 +60%</strong><span>離れた弾もまとめて奪う。反撃が大きくなりやすい。</span></button>
+</div><div class="tiny">選択後、すぐ戦闘再開。効果はプレイ画面にも表示される。</div></div></div>
+<div id="endModal" class="modal"><div class="panel"><h2 id="endTitle">RUN COMPLETE</h2><p id="endText"></p><button class="main-btn" id="again">PLAY AGAIN</button><div class="tiny">試作評価：位置取りは楽しい？ HIJACKを押すタイミングに迷った？ 強化の違いは感じた？</div></div></div>
+</div>
+<div class="loadout"><button id="weaponBlade" class="active"><b>1 · BLADE</b><span>短射程 / 広い斬撃</span></button><button id="weaponSpear"><b>2 · SPEAR</b><span>長射程 / 細い貫通突き</span></button><button id="aimToggle"><b>F · MOUSE AIM</b><span>クリック不要 / 敵がいれば自動攻撃</span></button></div>
+<div class="controls"><div class="hint" id="hint">攻撃してゲージを溜める。弾を大量に奪いたいなら、溜まった後も危険に踏み込む。</div><button id="hijack" disabled><b>HIJACK 0%</b><small>攻撃を当ててゲージを溜めよう</small></button></div>
+<div class="foot">現在の公開版（v1.1.1）は変更していません。V2Aは射程とマウス照準の楽しさを調べる独立試作。マウスではクリック不要で自動攻撃。</div>
+</div>
+<script>
+(()=>{
+'use strict';
+const C=document.getElementById('cv'),ctx=C.getContext('2d');
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const hypot=Math.hypot;
+let W=900,H=520,dpr=1,S=1;
+let p,enemies,bullets,fx,elapsed,kills,hijacks,state='intro',endMessage='',spawnt=0,last=0,inputs={},target=null,ptr=null,upgrade=null,bannerT=0,shake=0,attackFx=null,attackT=0,scount=0,invT=0;
+const WEAPONS={blade:{name:'BLADE',reach:104,arc:1.83,cooldown:.36,damage:22,gauge:12},spear:{name:'SPEAR',reach:178,arc:.56,cooldown:.59,damage:36,gauge:17}};
+let weapon='blade',aimMode='mouse',mousePoint=null,faceAngle=-Math.PI/2;
+const colors={chaser:'#ffbd78',ranger:'#9c9afc',hijack:'#84f9ef',slash:'#ffdb91'};
+const rand=(a,b)=>a+Math.random()*(b-a);
+const dist=(a,b)=>hypot(a.x-b.x,a.y-b.y);
+function resize(){const r=C.getBoundingClientRect();W=Math.max(200,r.width);H=Math.max(250,r.height);dpr=Math.min(2,devicePixelRatio||1);C.width=Math.round(W*dpr);C.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);S=clamp(Math.min(W/570,H/490),.64,1.25);if(p){p.x=clamp(p.x,24,W-24);p.y=clamp(p.y,24,H-24)}}
+function reset(){resize();p={x:W*.5,y:H*.53,r:11*S,hp:5,gauge:0,attackCd:0,reach:104*S,attackspeed:.36,hijackRadius:145*S,flash:0};weapon='blade';faceAngle=-Math.PI/2;mousePoint=null;enemies=[];bullets=[];fx=[];elapsed=0;kills=0;hijacks=0;spawnt=1;invT=0;attackFx=null;attackT=0;scount=0;upgrade=null;inputs={};target=null;ptr=null;bannerT=0;shake=0;state='intro';$('intro').classList.add('show');$('upgradeModal').classList.remove('show');$('endModal').classList.remove('show');$('restart').blur();hud()}
+function start(mode){if(mode==='mouse'||mode==='auto')aimMode=mode;reset();$('intro').classList.remove('show');state='play';equip('blade',false);for(let i=0;i<2;i++)spawn('chaser',i);}
+function equip(w,announce=true){if(!WEAPONS[w]||!p)return;const old=weapon;weapon=w;const spec=WEAPONS[w];p.reach=spec.reach*S*(upgrade==='reach'?1.5:1);p.attackspeed=spec.cooldown/(upgrade==='speed'?1.65:1);p.attackCd=0;
+if(announce&&state==='play'&&old!==w)banner(spec.name+' EQUIPPED');hud();}
+function aimModeSwitch(){aimMode=aimMode==='mouse'?'auto':'mouse';if(state==='play')banner(aimMode==='mouse'?'MOUSE AIM':'AUTO AIM');hud();}
+function facing(){if(aimMode==='auto'){let closest=null,ds=Infinity;for(const e of enemies){const d=dist(p,e);if(d<ds){closest=e;ds=d}}if(closest)return Math.atan2(closest.y-p.y,closest.x-p.x)}else if(mousePoint){return Math.atan2(mousePoint.y-p.y,mousePoint.x-p.x)}return faceAngle;}
+function banner(s){$('message').textContent=s;$('message').style.opacity=1;bannerT=1.08}
+function spawn(kind,idx=0){let x,y,ang=rand(0,2*Math.PI);if(idx===1)ang+=Math.PI;
+const pad=25*S,rx=W/2+Math.cos(ang)*(W/2+pad),ry=H/2+Math.sin(ang)*(H/2+pad);
+x=clamp(rx,12,W-12);y=clamp(ry,12,H-12);const ranger=kind==='ranger';enemies.push({x,y,r:(ranger?17:13)*S,hp:ranger?67:29,max:ranger?67:29,type:kind,speed:(ranger?55:100)*S,attack:rand(.55,1.5),warn:0,dir:0,flash:0});}
+function projectile(e,ang,speed=165,life=3.5){bullets.push({x:e.x,y:e.y,vx:Math.cos(ang)*speed*S,vy:Math.sin(ang)*speed*S,r:5*S,life,kind:'enemy'});}
+function wave(dt){spawnt-=dt;const difficulty=elapsed>48?1.3:elapsed>20?1.12:1;if(spawnt<=0){spawnt=Math.max(.85,2.0/difficulty);if(enemies.length<17){const ranger=Math.random()<(elapsed>23?.43:.26);spawn(ranger?'ranger':'chaser');if(elapsed>46&&Math.random()<.5)spawn('chaser')}}}
+function autoattack(){
+const spec=WEAPONS[weapon];p.attackCd=p.attackspeed;
+const inReach=enemies.filter(e=>dist(e,p)<=p.reach+e.r);
+if(!inReach.length)return;
+const ang=facing();faceAngle=ang;
+attackFx={ang,arc:spec.arc,weapon,t:0};let hits=0;
+for(const e of inReach){
+ const a=Math.atan2(e.y-p.y,e.x-p.x);
+ const delta=Math.atan2(Math.sin(a-ang),Math.cos(a-ang));
+ const forgiving=Math.asin(clamp(e.r/Math.max(e.r+2,dist(p,e)),0,.3));
+ if(Math.abs(delta)>spec.arc*.5+forgiving)continue;
+ e.hp-=spec.damage;e.flash=.15;hits++;
+ for(let i=0;i<5;i++)fx.push({x:e.x,y:e.y,vx:rand(-75,75)*S,vy:rand(-75,75)*S,life:.24,max:.24,col:weapon==='blade'?'#ffdb91':'#acbbff'});
+}
+if(hits){p.gauge=clamp(p.gauge+spec.gauge+Math.max(0,hits-1)*8,0,100);p.flash=.12;scount++;}
+killEnemies();}
+function killEnemies(){for(let i=enemies.length-1;i>=0;i--){let e=enemies[i];if(e.hp>0)continue;kills++;for(let j=0;j<10;j++)fx.push({x:e.x,y:e.y,vx:rand(-130,130)*S,vy:rand(-130,130)*S,life:.42,max:.42,col:colors[e.type]});enemies.splice(i,1)}}
+function hijack(){if(state!=='play'||p.gauge<99.9)return;let count=0;for(const b of bullets){if(b.kind!=='enemy'||hypot(b.x-p.x,b.y-p.y)>p.hijackRadius)continue;b.kind='captured';b.life=1.7;b.r=6*S;b.vx=0;b.vy=0;count++;}
+if(!count){banner('NO BULLETS IN RANGE');return;}
+p.gauge=0;invT=Math.max(invT,.48);hijacks++;shake=12*S;banner('HIJACK ×'+count);p.flash=.4;
+for(let i=0;i<17;i++){let a=i*Math.PI*2/17;fx.push({x:p.x,y:p.y,vx:Math.cos(a)*rand(120,270)*S,vy:Math.sin(a)*rand(120,270)*S,life:.43,max:.43,col:colors.hijack})}
+hud()}
+function fireEnemies(dt){for(const e of enemies){e.flash=Math.max(0,e.flash-dt);const d=dist(e,p),dx=(p.x-e.x)/(d||1),dy=(p.y-e.y)/(d||1);
+if(e.type==='chaser'){if(d>e.r+p.r+10){e.x+=dx*e.speed*dt;e.y+=dy*e.speed*dt}e.attack-=dt;if(e.attack<0&&d<185*S){e.attack=rand(1.8,2.6);projectile(e,Math.atan2(dy,dx),143)}}
+else{const desired=190*S;if(d>desired+35*S){e.x+=dx*e.speed*dt;e.y+=dy*e.speed*dt}else if(d<desired-30*S){e.x-=dx*e.speed*.67*dt;e.y-=dy*e.speed*.67*dt}
+if(e.warn>0){e.warn-=dt;if(e.warn<=0){for(const a of [-.24,-.12,0,.12,.24])projectile(e,e.dir+a,160,4);e.attack=rand(2.0,2.5)}}else{e.attack-=dt;if(e.attack<=0){e.warn=.44;e.dir=Math.atan2(p.y-e.y,p.x-e.x)}}}
+e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
+if(d<p.r+e.r-3*S&&invT<=0){hurt()}
+}}
+function hurt(){if(invT>0)return;invT=.95;p.hp--;shake=9*S;p.flash=.4;banner('HIT!');if(p.hp<=0)finish(false)}
+function finish(win){state='end';$('endTitle').textContent=win?'TEST COMPLETE':'RUN OVER';$('endText').innerHTML=(win?'75秒生き残った！':'HPがなくなった。')+'<br><b>K.O. '+kills+'　/　HIJACK '+hijacks+'回</b><br>照準：'+(aimMode==='mouse'?'MOUSE':'AUTO')+'　/　最終武器：'+WEAPONS[weapon].name+'<br>強化：'+(upgrade==='reach'?'LONG REACH':upgrade==='speed'?'QUICK ATTACK':upgrade==='hijack'?'WIDE HIJACK':'未取得')+'<br><br>「近づいて殴る」と「弾を奪う」が別々の判断になっていたか、確かめてみて。';$('endModal').classList.add('show')}
+function tryUpgrade(){if(elapsed<30||upgrade!==null||state!=='play')return;state='upgrade';$('upgradeModal').classList.add('show')}
+function choose(k){if(state!=='upgrade')return;upgrade=k;if(k==='reach')banner('REACH EXPANDED');if(k==='speed')banner('QUICK ATTACK');if(k==='hijack'){p.hijackRadius*=1.6;banner('HIJACK FIELD UP')}state='play';$('upgradeModal').classList.remove('show');equip(weapon,false);hud()}
+function hud(){if(!p)return;$('hp').textContent='♥ '.repeat(clamp(p.hp,0,5))+'♡ '.repeat(clamp(5-p.hp,0,5));$('time').textContent=String(Math.max(0,Math.ceil(75-elapsed)));$('ko').textContent=kills;$('hc').textContent=hijacks;$('reachLabel').textContent=WEAPONS[weapon].name+' · REACH '+Math.round(p.reach/S)+' · '+(aimMode==='mouse'?'MOUSE':'AUTO');
+$('weaponBlade').classList.toggle('active',weapon==='blade');$('weaponSpear').classList.toggle('active',weapon==='spear');$('aimToggle').classList.toggle('active',aimMode==='mouse');$('aimToggle').querySelector('b').textContent='F · '+(aimMode==='mouse'?'MOUSE AIM':'AUTO AIM');let ready=p.gauge>=99.9;const n=bullets.filter(b=>b.kind==='enemy'&&hypot(b.x-p.x,b.y-p.y)<p.hijackRadius).length;let b=$('hijack');b.disabled=state!=='play'||!ready;b.classList.toggle('ready',ready);b.querySelector('b').textContent=ready?'HIJACK!':`HIJACK ${Math.round(p.gauge)}%`;b.querySelector('small').textContent=ready?`奪える弾：${n}発 · SPACEで発動`:'攻撃を当ててチャージ';$('hint').textContent=ready?'SPACEで弾を奪う。溜めてから使えば強力な反撃に！':(aimMode==='mouse'?'マウスで向きを合わせると自動攻撃。1/2で武器切替、Fで自動照準へ。':'最も近い敵を自動で狙う。1/2で武器切替、Fでマウス照準へ。');}
+function tick(dt){if(bannerT>0){bannerT-=dt;$('message').style.opacity=String(clamp(bannerT/.38,0,1))}
+if(state!=='play')return;elapsed+=dt;if(elapsed>=75){elapsed=75;finish(true);return}tryUpgrade();if(state!=='play')return;
+invT=Math.max(0,invT-dt);p.flash=Math.max(0,p.flash-dt);shake=Math.max(0,shake-dt*26);
+let x=(inputs.d||inputs.arrowright?1:0)-(inputs.a||inputs.arrowleft?1:0),y=(inputs.s||inputs.arrowdown?1:0)-(inputs.w||inputs.arrowup?1:0);
+if(target){const dx=target.x-p.x,dy=target.y-p.y,d=hypot(dx,dy);if(d>8*S){x+=dx/d;y+=dy/d}else target=null}
+let m=hypot(x,y);if(m>1){x/=m;y/=m}p.x=clamp(p.x+x*224*S*dt,16*S,W-16*S);p.y=clamp(p.y+y*224*S*dt,16*S,H-16*S);
+p.attackCd-=dt;if(p.attackCd<=0){const near=enemies.some(e=>dist(e,p)<=p.reach+e.r);if(near)autoattack();else p.attackCd=0}
+wave(dt);fireEnemies(dt);if(state==='end')return;
+for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.life-=dt;if(b.kind==='captured'){
+let closest=null,ds=Infinity;for(const e of enemies){const dd=dist(b,e);if(dd<ds){ds=dd;closest=e}}
+if(closest){const dx=closest.x-b.x,dy=closest.y-b.y,len=hypot(dx,dy)||1;b.vx=(dx/len)*440*S;b.vy=(dy/len)*440*S}
+}b.x+=b.vx*dt;b.y+=b.vy*dt;
+if(b.kind==='enemy'&&dist(b,p)<b.r+p.r-2*S){bullets.splice(i,1);hurt();if(state==='end')return;continue}
+if(b.kind==='captured'){let dead=false;for(const e of enemies){if(dist(b,e)<e.r+b.r){e.hp-=25;e.flash=.18;dead=true;break}}if(dead){bullets.splice(i,1);continue}}
+if(b.life<=0||b.x<-65||b.y<-65||b.x>W+65||b.y>H+65)bullets.splice(i,1)}
+killEnemies();if(bullets.length>220)bullets.splice(0,bullets.length-220);
+for(let i=fx.length-1;i>=0;i--){fx[i].x+=fx[i].vx*dt;fx[i].y+=fx[i].vy*dt;fx[i].life-=dt;if(fx[i].life<=0)fx.splice(i,1)}if(attackFx){attackFx.t+=dt;if(attackFx.t>.22)attackFx=null}hud()}
+function draw(){ctx.save();ctx.clearRect(0,0,W,H);ctx.translate(rand(-shake,shake)*.35,rand(-shake,shake)*.35);let g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#101a33');g.addColorStop(1,'#0a1024');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ctx.strokeStyle='#7ca9f009';ctx.lineWidth=1;let gap=48*S;for(let x=0;x<W;x+=gap){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=gap){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+if(p){ctx.save();const aimAng=facing(),spec=WEAPONS[weapon];
+ ctx.beginPath();ctx.arc(p.x,p.y,p.reach,0,Math.PI*2);ctx.strokeStyle=upgrade==='reach'?'#fff2a05e':'#e9d69c33';ctx.lineWidth=1.4;ctx.setLineDash([8,8]);ctx.stroke();ctx.setLineDash([]);
+ ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.arc(p.x,p.y,p.reach,aimAng-spec.arc*.5,aimAng+spec.arc*.5);ctx.closePath();ctx.fillStyle=aimMode==='mouse'?'#b1e3ff16':'#ffe4b10d';ctx.fill();ctx.strokeStyle=aimMode==='mouse'?'#a1dcff66':'#ffefc43b';ctx.lineWidth=1.6;ctx.stroke();
+ ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+Math.cos(aimAng)*p.reach,p.y+Math.sin(aimAng)*p.reach);ctx.strokeStyle='#deeeff7a';ctx.lineWidth=2;ctx.stroke();
+if(p.gauge>=99.9){ctx.beginPath();ctx.arc(p.x,p.y,p.hijackRadius,0,Math.PI*2);ctx.strokeStyle='#7df8ee88';ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle='#69f5ec09';ctx.fill()}
+if(attackFx){const a=attackFx.ang,life=1-attackFx.t/.22;ctx.beginPath();ctx.arc(p.x,p.y,p.reach,a-attackFx.arc*.5,a+attackFx.arc*.5);ctx.strokeStyle=attackFx.weapon==='spear'?`rgba(174,204,255,${clamp(life,0,1)})`:`rgba(255,220,140,${clamp(life,0,1)})`;ctx.lineWidth=(attackFx.weapon==='spear'?8:17)*S*life+2;ctx.stroke()}
+ctx.restore()}
+for(const b of bullets){ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.kind==='captured'?colors.hijack:'#fe819b';ctx.shadowBlur=b.kind==='captured'?13:3;ctx.shadowColor=ctx.fillStyle;ctx.fill()}ctx.shadowBlur=0;
+for(const e of enemies){if(e.type==='ranger'&&e.warn>0){ctx.beginPath();ctx.moveTo(e.x,e.y);ctx.lineTo(e.x+Math.cos(e.dir)*W,e.y+Math.sin(e.dir)*W);ctx.strokeStyle=`rgba(255,142,166,${.18+.38*e.warn/.44})`;ctx.lineWidth=3*S;ctx.stroke()}
+ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fillStyle=e.flash>0?'#fff':colors[e.type];ctx.shadowBlur=9;ctx.shadowColor=colors[e.type];ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#071226';ctx.lineWidth=3*S;ctx.stroke();ctx.fillStyle='#0a1123aa';ctx.fillRect(e.x-17*S,e.y-e.r-10*S,34*S,4*S);ctx.fillStyle=e.type==='ranger'?'#b2b1fc':'#f9c084';ctx.fillRect(e.x-17*S,e.y-e.r-10*S,34*S*clamp(e.hp/e.max,0,1),4*S)}
+for(const f of fx){ctx.globalAlpha=clamp(f.life/f.max,0,1);ctx.fillStyle=f.col;ctx.fillRect(f.x-2*S,f.y-2*S,4*S,4*S)}ctx.globalAlpha=1;
+if(p){if(invT<=0||Math.floor(invT*12)%2===0){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.flash>0?'#fff0bd':'#d7f8ff';ctx.shadowBlur=17;ctx.shadowColor=p.gauge>=99.9?'#6bfbe9':'#9bccff';ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#182b42';ctx.lineWidth=3*S;ctx.stroke()}
+ctx.beginPath();ctx.arc(p.x,p.y,p.r+7*S,-Math.PI/2,-Math.PI/2+Math.PI*2*(p.gauge/100));ctx.strokeStyle=colors.hijack;ctx.lineWidth=4*S;ctx.stroke()}
+if(state==='play'&&elapsed<8){ctx.fillStyle='#c8dcfdbe';ctx.textAlign='center';ctx.font=`${Math.max(11,15*S)}px system-ui`;ctx.fillText('斜線の扇形が攻撃範囲 · マウス照準 / F自動照準 · 1/2武器切替',W/2,H-16*S)}ctx.restore()}
+function frame(t){let dt=Math.min(.034,((t-last)||0)/1000);last=t;tick(dt);draw();requestAnimationFrame(frame)}
+$('startMouse').addEventListener('click',()=>start('mouse'));
+$('startAuto').addEventListener('click',()=>start('auto'));
+$('weaponBlade').addEventListener('click',()=>equip('blade'));
+$('weaponSpear').addEventListener('click',()=>equip('spear'));
+$('aimToggle').addEventListener('click',aimModeSwitch);
+$('restart').addEventListener('click',()=>reset());$('again').addEventListener('click',()=>start());$('hijack').addEventListener('click',hijack);document.querySelectorAll('[data-upgrade]').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.upgrade)));
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();if(k===' '&&!e.repeat){hijack();return}if(state==='play'&&!e.repeat){if(k==='1')equip('blade');if(k==='2')equip('spear');if(k==='f')aimModeSwitch();}
+if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k))inputs[k]=true;if(k==='enter'&&state==='intro')start('mouse')},{passive:false});window.addEventListener('keyup',e=>inputs[e.key.toLowerCase()]=false);window.addEventListener('blur',()=>{inputs={};target=null});
+function loc(e){let r=C.getBoundingClientRect();return{x:clamp(e.clientX-r.left,0,W),y:clamp(e.clientY-r.top,0,H)}}
+C.addEventListener('pointerdown',e=>{if(state!=='play')return;
+if(e.pointerType==='mouse'){mousePoint=loc(e);return;}
+ptr=e.pointerId;target=loc(e);try{C.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+C.addEventListener('pointermove',e=>{if(state!=='play')return;
+if(e.pointerType==='mouse'){mousePoint=loc(e);return;}
+if(ptr!==e.pointerId)return;target=loc(e);e.preventDefault()});function endp(e){if(ptr!==e.pointerId)return;ptr=null;target=null;e.preventDefault()}C.addEventListener('pointerup',endp);C.addEventListener('pointercancel',endp);C.addEventListener('contextmenu',e=>e.preventDefault());window.addEventListener('resize',resize);document.addEventListener('visibilitychange',()=>last=performance.now());reset();requestAnimationFrame(frame);
+window.__hijackTest={get state(){return state},get elapsed(){return elapsed},get kills(){return kills},get player(){return p},get enemyCount(){return enemies.length},get bulletCount(){return bullets.length},get upgrade(){return upgrade},get weapon(){return weapon},get aimMode(){return aimMode},get facingAngle(){return facing()},testAdvance:function(secs){let n=Math.ceil(secs/.016);for(let i=0;i<n;i++)tick(.016)},testGauge:function(v=100){p.gauge=v;hud()},testAddBullets:function(n=10){for(let i=0;i<n;i++){let a=i*Math.PI*2/n;bullets.push({x:p.x+Math.cos(a)*p.hijackRadius*.62,y:p.y+Math.sin(a)*p.hijackRadius*.62,vx:0,vy:0,r:5*S,life:5,kind:'enemy'})}hud()},testSetEnemyAt:function(dx,dy,hp=1000){enemies=[{x:p.x+dx*S,y:p.y+dy*S,r:13*S,hp,max:hp,type:'chaser',speed:0,attack:99,warn:0,dir:0,flash:0}]},testEnemyHp:function(){return enemies[0]?.hp ?? null},testEnemyCount:function(){return enemies.length}};
+})();
+</script>
+</body>
+</html>
