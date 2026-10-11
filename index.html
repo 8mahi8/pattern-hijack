@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PATTERN HIJACK — v1.1 STABILITY</title>
+<title>PATTERN HIJACK — v1.1.1 MOBILE FIX</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -58,7 +58,46 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .banner{position:absolute;left:50%;top:25%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;text-align:center;font-weight:1000;opacity:0}
 .buildPanel{position:absolute;right:10px;bottom:50px;width:155px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
 .buildTag{font-size:9px;padding:5px 7px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.35);opacity:.8}
-@media(max-width:760px){.cards{grid-template-columns:1fr}.card{min-height:115px}.meta{grid-template-columns:repeat(3,1fr)}}
+/* Mobile interaction panels must NOT be clipped by the 16:9 game stage.
+   On a phone the stage is only ~200px high; using in-stage overlays hides
+   START and PLAY AGAIN behind .stage{overflow:hidden}. */
+@media (max-width:760px), (hover:none) and (pointer:coarse) {
+  .meta{grid-template-columns:repeat(3,1fr)}
+  .overlay {
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+    z-index:1000;
+    padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    align-items:safe center;
+    justify-content:center;
+    -webkit-overflow-scrolling:touch;
+  }
+  .overlay .panel {
+    width:min(100%, 480px);
+    max-height:calc(100dvh - 32px);
+    padding:16px;
+    overflow-y:auto;
+    flex-shrink:0;
+  }
+  .logo {font-size:clamp(26px,7vw,42px)}
+  .title {font-size:clamp(20px,5vw,28px)}
+  .tagline {font-size:12px;line-height:1.55;margin-bottom:12px}
+  .sub {line-height:1.5;margin-bottom:10px}
+  .cards {grid-template-columns:1fr;gap:7px}
+  .card {min-height:0;padding:11px;touch-action:manipulation}
+  .card b {font-size:15px;margin-bottom:4px}
+  .card em {margin-bottom:5px}
+  .card small {font-size:11px;line-height:1.4}
+  .btn,.bigBtn {min-height:44px;touch-action:manipulation}
+  #restart {flex-shrink:0}
+}
+
 </style>
 </head>
 <body>
@@ -104,7 +143,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
             強化を組み合わせ、後半ほどHIJACKのテンポと返し方を変える。
           </div>
           <button id="startBtn" class="bigBtn">START RUN</button>
-          <div class="buildLine">v1.1 STABILITY · GitHub Edition</div>
+          <div class="buildLine">v1.1.1 MOBILE FIX · GitHub Edition</div>
         </div>
       </div>
 
@@ -134,7 +173,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
       <div>BREAKS<br><b id="breaks">0</b></div>
       <div>BUILD<br><b id="build">BASE</b></div>
     </div>
-    <div class="footer">PATTERN HIJACK v1.1 — 4 WAVE + BOSS / AUDIO HOLD / 共通FLOW・色選択・CHAIN・BUILDを1runに統合。</div>
+    <div class="footer">PATTERN HIJACK v1.1.1 — 4 WAVE + BOSS / AUDIO HOLD / 共通FLOW・色選択・CHAIN・BUILDを1runに統合。</div>
   </div>
 </main>
 
@@ -659,7 +698,7 @@ function draw(){
  X.lineWidth=overdrive>0?4:flow>=1?4:2;X.beginPath();X.arc(P.x,P.y,P.r+24+Math.min(1,flow)*10,0,Math.PI*2);X.stroke();
  if(inv<=0||Math.floor(inv*14)%2===0){X.fillStyle='#f5f6fb';X.beginPath();X.arc(P.x,P.y,P.r,0,Math.PI*2);X.fill()}
  drawHijack();X.restore();
- R.style.filter=flash>0?'brightness('+(1+flash*.55)+')':'none';
+ C.style.filter=flash>0?'brightness('+(1+flash*.55)+')':'none';
 }
 
 function frame(n){
