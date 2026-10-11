@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PATTERN HIJACK — v1.1 STABILITY</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:#070a10;color:#f5f7ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:16px}
+main{max-width:1180px;margin:0 auto}
+button{font:inherit;color:inherit}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;font-size:12px}
+.header .hint{opacity:.72}
+.btn{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);padding:7px 12px;border-radius:9px;font-weight:850;cursor:pointer}
+#game{outline:none}
+.stage{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:#0d111a;box-shadow:0 24px 80px rgba(0,0,0,.34)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;inset:0;padding:12px;pointer-events:none;text-shadow:0 2px 5px rgba(0,0,0,.9)}
+.top{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;font-size:11px;font-weight:950;letter-spacing:.03em}
+.top span:nth-child(2),.top span:nth-child(3){text-align:center}
+.top span:last-child{text-align:right}
+.pattern{position:absolute;left:50%;top:43px;transform:translateX(-50%);padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.13);font-size:11px;font-weight:1000;white-space:nowrap}
+.flowWrap{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:59%;font-size:10px;font-weight:950}
+.flowHead{display:flex;justify-content:space-between;gap:10px;margin-bottom:4px}
+.bar{height:10px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#b9dbff,#ffffff)}
+.enemyWrap{position:absolute;left:50%;top:68px;transform:translateX(-50%);width:58%;display:block}
+.enemyTitle{display:flex;justify-content:space-between;font-size:9px;font-weight:950;margin-bottom:4px;opacity:.85}
+.enemyBars{display:grid;gap:5px}
+.enemyLine{display:grid;grid-template-columns:62px 1fr 44px;gap:7px;align-items:center;font-size:9px;font-weight:900}
+.enemyLine .bar{height:7px}
+.enemyLine .efill{height:100%;border-radius:999px}
+.meta{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:8px;font-size:11px;text-align:center}
+.meta>div{padding:7px 5px;border:1px solid rgba(255,255,255,.07);border-radius:9px;background:rgba(255,255,255,.035)}
+.meta b{font-size:13px}
+.footer{font-size:11px;opacity:.6;margin-top:7px}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,11,.82);backdrop-filter:blur(4px);z-index:8}
+.overlay.show{display:flex}
+.panel{width:min(960px,94%);padding:22px;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:#101722;box-shadow:0 28px 90px rgba(0,0,0,.55)}
+.title{text-align:center;font-weight:1000;font-size:30px;letter-spacing:.02em}
+.sub{text-align:center;font-size:11px;opacity:.66;margin:5px 0 17px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.card{cursor:pointer;padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);min-height:165px;transition:.12s transform,.12s background,.12s border-color}
+.card:hover{transform:translateY(-2px);background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.25)}
+.card .key{float:right;opacity:.4;font-weight:1000}
+.card b{display:block;font-size:18px;margin-bottom:6px}
+.card em{display:block;font-style:normal;font-size:10px;opacity:.5;margin-bottom:9px}
+.card small{font-size:11px;opacity:.72;line-height:1.55}
+.startPanel{text-align:center;max-width:700px}
+.logo{font-size:48px;font-weight:1100;letter-spacing:-.04em;margin-bottom:5px}
+.tagline{opacity:.72;font-size:13px;line-height:1.7;margin:0 auto 20px;max-width:650px}
+.bigBtn{border:1px solid rgba(255,255,255,.22);background:#f5f7ff;color:#0a0e16;padding:12px 28px;border-radius:12px;font-weight:1000;cursor:pointer;font-size:16px}
+.buildLine{font-size:10px;opacity:.45;margin-top:15px}
+.resultBox{text-align:center;max-width:680px}
+.resultStats{line-height:1.8;opacity:.8;margin:12px 0 20px}
+.banner{position:absolute;left:50%;top:25%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;text-align:center;font-weight:1000;opacity:0}
+.buildPanel{position:absolute;right:10px;bottom:50px;width:155px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.buildTag{font-size:9px;padding:5px 7px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.35);opacity:.8}
+@media(max-width:760px){.cards{grid-template-columns:1fr}.card{min-height:115px}.meta{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<main>
+  <div class="header">
+    <div><b>WASD / 矢印 / ドラッグ</b>　<span class="hint">AUTO FIRE / 共通FLOW / 最後に触れた色をHIJACK</span></div>
+    <button id="restart" class="btn">RESTART</button>
+  </div>
+
+  <div id="game" tabindex="0">
+    <div class="stage">
+      <canvas id="cv" width="960" height="540"></canvas>
+
+      <div class="hud">
+        <div class="top">
+          <span id="hp">HP ●●●●●●●●</span>
+          <span id="stageText">READY</span>
+          <span id="objective">DESTROY EMITTERS</span>
+          <span id="bossText">WAVE --</span>
+        </div>
+        <div id="pattern" class="pattern">PATTERN HIJACK</div>
+
+        <div class="enemyWrap">
+          <div class="enemyTitle"><span id="enemyTitle">EMITTER STATUS</span><span id="enemyCount">0 LEFT</span></div>
+          <div id="enemyBars" class="enemyBars"></div>
+        </div>
+
+        <div class="flowWrap">
+          <div class="flowHead"><span>FLOW</span><span id="density">TARGET -- · SAFE</span></div>
+          <div class="bar"><div id="flow" class="fill"></div></div>
+        </div>
+      </div>
+
+      <div id="buildPanel" class="buildPanel"></div>
+      <div id="banner" class="banner"></div>
+
+      <div id="startOverlay" class="overlay show">
+        <div class="panel startPanel">
+          <div class="logo">PATTERN HIJACK</div>
+          <div class="tagline">
+            4つのwaveで<b>EMITTERを破壊</b>し、最後にBossへ進む。<br>
+            FLOWを溜め、最後に触れた色のpatternをHIJACK。<br>
+            強化を組み合わせ、後半ほどHIJACKのテンポと返し方を変える。
+          </div>
+          <button id="startBtn" class="bigBtn">START RUN</button>
+          <div class="buildLine">v1.1 STABILITY · GitHub Edition</div>
+        </div>
+      </div>
+
+      <div id="upgrade" class="overlay">
+        <div class="panel">
+          <div class="title">CHOOSE UPGRADE</div>
+          <div class="sub">左=CHAIN / 中=RISK / 右=RETURN。カードには「今 → 取得後」を表示。今の方向を伸ばすか、別系統へ分岐するか選ぶ。</div><div id="draftSummary" style="text-align:center;font-size:11px;margin:-6px 0 14px;opacity:.78"></div>
+          <div id="cards" class="cards"></div>
+        </div>
+      </div>
+
+      <div id="result" class="overlay">
+        <div class="panel resultBox">
+          <div id="resultTitle" class="title">RUN COMPLETE</div>
+          <div id="resultText" class="resultStats"></div>
+          <button id="resultRestart" class="bigBtn">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div>HIJACK<br><b id="hijacks">0</b></div>
+      <div>STOLEN<br><b id="stolen">0</b></div>
+      <div>MAX CHAIN<br><b id="maxChain">0</b></div>
+      <div>MAX DENSITY<br><b id="maxDensity">0</b></div>
+      <div>WAVES<br><b id="waves">0</b></div>
+      <div>BREAKS<br><b id="breaks">0</b></div>
+      <div>BUILD<br><b id="build">BASE</b></div>
+    </div>
+    <div class="footer">PATTERN HIJACK v1.1 — 4 WAVE + BOSS / AUDIO HOLD / 共通FLOW・色選択・CHAIN・BUILDを1runに統合。</div>
+  </div>
+</main>
+
+<script>
+(()=>{
+const R=document.getElementById('game'),C=document.getElementById('cv'),X=C.getContext('2d');
+const nodes=new Map();const $=s=>{if(!nodes.has(s))nodes.set(s,R.querySelector(s));return nodes.get(s)};const W=960,H=540,K={};
+const P={x:480,y:430,r:9,hp:8,max:8};
+const PNAME=['RING','WALL','SPIRAL','CROSS'];
+const PCOLOR=['#ef7d8d','#f0b36b','#a98cf5','#72d6c8'];
+
+let bullets=[],emitters=[],last=performance.now(),running=false,dead=false,won=false,inv=0;
+let flow=0,lastFlowPid=null,nearNow=0,maxDensity=0;
+let hijacks=0,stolen=0,maxChain=0,breaks=0,wavesCleared=0;
+let flash=0,shake=0,freeze=0,hijackFx=null,overdrive=0;
+let chainWindow=0,chainCount=0,lastCapturedPid=null;
+let autoTimer=0,drag=false,dragId=null,target=null;
+let emitTimers=[0,0,0,0],emitCounts=[0,0,0,0],spiralAngle=0;
+let waveIndex=0,pausedUpgrade=false,clearingWave=false,clearTimer=0;
+let upgrades={echo:0,risk:0,drive:0,momentum:0,burst:0,focus:0};
+let choiceCount=0;
+let bossMode=false,bossBreak=0,bossBreakFx=0,emitterSilence=[0,0,0,0];
+let bossCore={x:480,y:96,r:28,hp:720,max:720};
+let bossWallTimer=3.8;
+let victoryLocked=false;
+let tutorial={flow:false,hijack:false};
+let runToken=0;
+const MAX_BULLETS=620;
+
+let audio=null,master=null,bgmGain=null,bgmTimer=null,bgmStep=0;
+let focusPid=null,focusTime=0;
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+const WAVES=[
+ {name:'WAVE 1 — RING / WALL', specs:[{pid:0,hp:150,x:390,y:92},{pid:1,hp:165,x:570,y:92}]},
+ {name:'WAVE 2 — SPIRAL / CROSS', specs:[{pid:2,hp:180,x:360,y:105},{pid:3,hp:180,x:600,y:105}]},
+ {name:'WAVE 3 — TRIAD', specs:[{pid:0,hp:195,x:300,y:100},{pid:2,hp:210,x:480,y:84},{pid:3,hp:200,x:660,y:100}]},
+ {name:'WAVE 4 — HUNTER FIELD', specs:[{pid:0,hp:220,x:250,y:100},{pid:1,hp:210,x:410,y:88},{pid:2,hp:230,x:570,y:88},{pid:3,hp:220,x:730,y:100}]},
+ {name:'FINAL BOSS — TRI-CORE ARCHON', boss:true, specs:[{pid:0,hp:9999,x:300,y:108},{pid:2,hp:9999,x:480,y:82},{pid:3,hp:9999,x:660,y:108}]}
+];
+
+const CARD_INFO={
+ echo:{name:'FLOW ECHO',branch:'CHAIN',desc:r=>`HIJACK後にFLOWを ${r===1?'20%':r===2?'34%':'45%'} 残す。次のHIJACKが早くなる。`},
+ momentum:{name:'CHAIN MOMENTUM',branch:'CHAIN',desc:r=>`CHAIN成功時にFLOW ${r===1?'12%':r===2?'20%':'28%'} 追加。連続奪取を伸ばす。`},
+ risk:{name:'REDLINE',branch:'RISK',desc:r=>`危険弾4個以上でFLOW獲得 ${r===1?'+50%':r===2?'+85%':'+120%'}。危険地帯が近道になる。`},
+ focus:{name:'PREDATOR FOCUS',branch:'RISK',desc:r=>`同じ色を狙い続けるほどFLOW効率上昇。最大 ${r===1?'+35%':r===2?'+60%':'+90%'}。`},
+ drive:{name:'HIJACK DRIVE',branch:'RETURN',desc:r=>`返却弾の速度・威力・OVERDRIVEを大幅強化。Rank ${r}。`},
+ burst:{name:'RETURN BURST',branch:'RETURN',desc:r=>`HIJACK時に追尾弾 ${r===1?'8':r===2?'13':'18'} 発射。返す瞬間が主火力になる。`}
+};
+
+const DRAFTS=[
+ ['echo','risk','drive'],
+ ['momentum','focus','burst'],
+ ['echo','risk','drive'],
+ ['momentum','focus','burst']
+];
+
+function initAudio(){}
+function tone(freq,dur=.08,type='sine',gain=.08,when=0){}
+function chord(freqs,dur=.22,gain=.04){}
+function sfx(name){}
+function startBGM(){}
+
+function spawnWave(index){
+ waveIndex=index;bossMode=!!WAVES[index].boss;bullets=[];emitters=[];
+ emitTimers=[0,0,0,0];emitCounts=[0,0,0,0];spiralAngle=0;
+ emitterSilence=[0,0,0,0];bossBreak=0;bossWallTimer=3.8;
+ if(bossMode)bossCore={x:480,y:96,r:28,hp:720,max:720};
+ for(const s of WAVES[index].specs)emitters.push({...s,max:s.hp,alive:true});
+ $('#pattern').textContent=WAVES[index].name;
+ $('#enemyTitle').textContent=bossMode?'BOSS CORE':'EMITTER STATUS';
+ if(index===0)showBanner('GET CLOSE TO BULLETS','危険なほどFLOWが速く溜まる',1.5);
+ else showBanner(bossMode?'FINAL BOSS':'WAVE '+(index+1),WAVES[index].name,bossMode?1.35:.8);
+ renderEnemyBars(true);
+}
+
+function reset(startImmediately=false){
+ bullets=[];emitters=[];Object.assign(P,{x:480,y:430,hp:8});
+ running=startImmediately;dead=false;won=false;inv=0;
+ flow=0;lastFlowPid=null;nearNow=0;maxDensity=0;hijacks=0;stolen=0;maxChain=0;breaks=0;wavesCleared=0;
+ flash=0;shake=0;freeze=0;hijackFx=null;overdrive=0;chainWindow=0;chainCount=0;lastCapturedPid=null;
+ autoTimer=0;emitTimers=[0,0,0,0];emitCounts=[0,0,0,0];spiralAngle=0;
+ waveIndex=0;pausedUpgrade=false;clearingWave=false;clearTimer=0;upgrades={echo:0,risk:0,drive:0,momentum:0,burst:0,focus:0};choiceCount=0;
+ bossMode=false;bossBreak=0;bossBreakFx=0;emitterSilence=[0,0,0,0];
+ bossCore={x:480,y:96,r:28,hp:720,max:720};bossWallTimer=3.8;victoryLocked=false;
+ tutorial={flow:false,hijack:false};runToken++;
+ focusPid=null;focusTime=0;target=null;drag=false;dragId=null;Object.keys(K).forEach(k=>delete K[k]);enemyBarsSignature='';buildPanelSignature='';
+ $('#upgrade').classList.remove('show');$('#result').classList.remove('show');
+ if(startImmediately){$('#startOverlay').classList.remove('show');spawnWave(0)}else $('#startOverlay').classList.add('show');
+ hud();
+}
+
+function aliveEmitters(){return emitters.filter(e=>e.alive)}
+function getEmitter(pid){return emitters.find(e=>e.alive&&e.pid===pid)}
+function hostile(x,y,vx,vy,r=5,pid=-1,life=8){bullets.push({x,y,vx,vy,r,pid,friendly:false,life,damage:1})}
+
+function spawnRing(e){
+ const c=emitCounts[0]++,count=waveIndex>=3?28:24,off=(c%2)*Math.PI/count;
+ for(let i=0;i<count;i++){
+  const a=off+i*Math.PI*2/count,s=138+(i%2)*16;
+  hostile(e.x,e.y,Math.cos(a)*s,Math.sin(a)*s,5,0);
+ }
+}
+function spawnWall(e){
+ const c=emitCounts[1]++,fromLeft=c%2===0,x=fromLeft?-18:W+18,vx=fromLeft?118:-118;
+ const gapCenter=180+(c%3)*122,gapHalf=68;
+ for(let y=150;y<=520;y+=29){
+  if(Math.abs(y-gapCenter)<gapHalf)continue;
+  hostile(x,y,vx,((y/29+c)%3-1)*2.5,5,1,9);
+ }
+}
+function spawnSpiral(e,dt){
+ spiralAngle+=dt*1.28;
+ for(let arm=0;arm<4;arm++){
+  const a=spiralAngle+arm*Math.PI/2,s=158;
+  hostile(e.x,e.y,Math.cos(a)*s,Math.sin(a)*s,5,2);
+ }
+}
+function spawnCross(e){
+ const c=emitCounts[3]++,drift=Math.sin(c*.45)*.08;
+ const leftX=e.x-80,rightX=e.x+80,y0=e.y;
+ const a1=Math.atan2(460-y0,650-leftX)+drift;
+ const a2=Math.atan2(460-y0,310-rightX)-drift;
+ for(let k=-1;k<=1;k++){
+  const p1=a1+k*.055,p2=a2+k*.055,s=180;
+  hostile(leftX,y0,Math.cos(p1)*s,Math.sin(p1)*s,5,3);
+  hostile(rightX,y0,Math.cos(p2)*s,Math.sin(p2)*s,5,3);
+ }
+}
+
+function emitPatterns(dt){
+ for(let i=0;i<4;i++)emitTimers[i]-=dt;
+ if(bossMode&&bossBreak>0)return;
+
+ const alive=aliveEmitters();
+ let q=Math.max(.70,1-waveIndex*.055);
+ if(bossMode){
+  const hpRatio=bossCore.hp/bossCore.max;
+  if(hpRatio<.60)q*=.88;
+  if(hpRatio<.28)q*=.86;
+  bossWallTimer-=dt;
+  if(hpRatio<.58 && bossWallTimer<=0){
+   spawnWall({x:480,y:96});
+   bossWallTimer=hpRatio<.28?3.2:4.2;
+  }
+ }
+
+ for(const e of alive){
+  if(emitterSilence[e.pid]>0)continue;
+  if(e.pid===0&&emitTimers[0]<=0){spawnRing(e);emitTimers[0]=1.48*q}
+  if(e.pid===1&&emitTimers[1]<=0){spawnWall(e);emitTimers[1]=2.55*q}
+  if(e.pid===2&&emitTimers[2]<=0){spawnSpiral(e,dt);emitTimers[2]=.18*q}
+  if(e.pid===3&&emitTimers[3]<=0){spawnCross(e);emitTimers[3]=.31*q}
+ }
+}
+
+function nearestEmitter(){
+ const alive=aliveEmitters();if(!alive.length)return null;
+ return alive.reduce((best,e)=>!best||Math.hypot(P.x-e.x,P.y-e.y)<Math.hypot(P.x-best.x,P.y-best.y)?e:best,null)
+}
+
+function autoFire(dt){
+ autoTimer-=dt;if(autoTimer>0||dead||won||pausedUpgrade||!running)return;
+ let tx,ty;
+ if(bossMode){tx=bossCore.x;ty=bossCore.y}
+ else{const e=nearestEmitter();if(!e)return;tx=e.x;ty=e.y}
+ let interval=.20;if(overdrive>0)interval=Math.max(.07,.105-upgrades.drive*.008);
+ autoTimer=interval;
+ const a=Math.atan2(ty-P.y,tx-P.x);
+ bullets.push({x:P.x,y:P.y-10,vx:Math.cos(a)*500,vy:Math.sin(a)*500,r:3,friendly:true,auto:true,damage:.15,life:2.5});
+}
+
+function spawnReturnBurst(rank){
+ if(rank<=0)return;
+ const count=rank===1?8:rank===2?13:18;
+ const alive=aliveEmitters();if(!bossMode&&!alive.length)return;
+ for(let i=0;i<count;i++){
+  let tx,ty;if(bossMode){tx=bossCore.x;ty=bossCore.y}else{const e=alive[i%alive.length];tx=e.x;ty=e.y}
+  const a=Math.atan2(ty-P.y,tx-P.x)+(Math.random()-.5)*.08,s=510+rank*30;
+  bullets.push({x:P.x,y:P.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:3.2,friendly:true,auto:false,damage:1.0+rank*.35,life:2.2});
+ }
+}
+
+function killEmitter(e){
+ if(bossMode||!e.alive||clearingWave)return;
+ e.alive=false;e.hp=0;shake=14;flash=.15;
+ // Invalidate this emitter's hostile bullets in-place. Replacing bullets[]
+ // here would corrupt the backwards bullet iteration in update().
+ for(const b of bullets)if(!b.friendly&&b.pid===e.pid)b.life=0;
+ showBanner(PNAME[e.pid]+' CORE DOWN','',.5);
+ renderEnemyBars(true);
+ if(!aliveEmitters().length){
+  wavesCleared++;clearingWave=true;clearTimer=.45;
+  // Upgrade after a short deterministic intermission, not a timer callback.
+ }
+}
+
+function applyDamageToEmitter(e,damage,b){
+ if(!e||!e.alive||bossMode)return;
+ e.hp-=damage;if(e.hp<=0)killEmitter(e);
+}
+
+function applyDamageToBossCore(damage){
+ if(!bossMode||bossBreak<=0||victoryLocked)return;
+ bossCore.hp-=damage;
+ if(bossCore.hp<=0){
+  bossCore.hp=0;victoryLocked=true;won=true;running=false;bullets=[];
+  showBanner('CORE DESTROYED','RUN COMPLETE',1.0);
+  const token=runToken;setTimeout(()=>{if(token===runToken&&victoryLocked)showResult(true)},160);
+ }
+}
+
+function triggerBossBreak(pid,capturedCount=0,currentChain=1){
+ if(!bossMode||![0,2,3].includes(pid))return;
+ emitterSilence[pid]=5.6;
+ const all=[0,2,3].every(p=>emitterSilence[p]>0);
+ if(all&&bossBreak<=0){
+  bossBreak=4.0;breaks++;flash=.52;shake=34;freeze=.08;
+  const shatter=Math.min(210,115+capturedCount*1.7+Math.max(0,currentChain-1)*18);
+  bossCore.hp=Math.max(0,bossCore.hp-shatter);
+  showBanner('CORE BREAK',`SHATTER ${Math.round(shatter)} — ATTACK NOW`,1.1);
+  if(bossCore.hp<=0&&!victoryLocked){
+   bossCore.hp=0;victoryLocked=true;won=true;running=false;bullets=[];
+   const token=runToken;setTimeout(()=>{if(token===runToken&&victoryLocked)showResult(true)},180);
+  }
+ }
+}
+
+function maxFlow(){return 1}
+
+function hijack(){
+ if(lastFlowPid===null)return;
+ let n=0;const captured=lastFlowPid,rank=upgrades.drive;
+ const hijackDamage=2.15*(1+rank*.42),speed=475+rank*48;
+ for(const b of bullets){
+  if(b.friendly||b.pid!==captured)continue;
+  b.friendly=true;b.auto=false;b.damage=hijackDamage;
+  let tx,ty;
+  if(bossMode){tx=bossCore.x;ty=bossCore.y}else{const e=getEmitter(captured)||nearestEmitter();if(e){tx=e.x;ty=e.y}else{tx=b.x;ty=-40}}
+  const a=Math.atan2(ty-b.y,tx-b.x);b.vx=Math.cos(a)*speed;b.vy=Math.sin(a)*speed;b.life=2.5;n++;
+ }
+ if(!n)return;
+ const chained=chainWindow>0&&lastCapturedPid!==null&&captured!==lastCapturedPid;
+ chainCount=chained?chainCount+1:1;maxChain=Math.max(maxChain,chainCount);
+ chainWindow=2.2+upgrades.momentum*.36;lastCapturedPid=captured;
+ let carry=[0,.20,.34,.45][upgrades.echo];if(chained)carry+=[0,.12,.20,.28][upgrades.momentum];
+ flow=Math.min(1,carry);lastFlowPid=null;
+ hijacks++;stolen+=n;freeze=.05;flash=.28;shake=chained?26:18;overdrive=1.5+rank*.72+(chained?upgrades.momentum*.18:0);
+ spawnReturnBurst(upgrades.burst);triggerBossBreak(captured,n,chainCount);hijackFx={age:0,dur:.76,count:n,label:PNAME[captured],chain:chainCount};
+ if(!tutorial.hijack&&waveIndex===0){
+  tutorial.hijack=true;
+  const token=runToken;setTimeout(()=>{if(token===runToken&&running&&!pausedUpgrade&&!dead&&!won)showBanner('RETURN FIRE','奪った弾がEMITTERへの主火力',1.05)},650);
+ }
+ hud();
+}
+
+function hurt(){
+ if(inv>0||dead||won)return;
+ if(upgrades.shield>0){
+  const threshold=[0,.70,.55,.40][upgrades.shield];
+  if(flow>=threshold){
+   flow=Math.max(0,flow-threshold);inv=.35;flash=.16;shake=5;tone(220,.08,'triangle',.05);return;
+  }
+ }
+ inv=.78;P.hp--;flow*=.5;shake=9;sfx('hurt');
+ if(P.hp<=0){dead=true;running=false;showResult(false)}
+ hud();
+}
+
+function move(dt){
+ let x=0,y=0;
+ if(K.w||K.arrowup)y--;if(K.s||K.arrowdown)y++;if(K.a||K.arrowleft)x--;if(K.d||K.arrowright)x++;
+ if(target){const dx=target.x-P.x,dy=target.y-P.y,d=Math.hypot(dx,dy);if(d>5){x+=dx/d;y+=dy/d}else target=null}
+ const m=Math.hypot(x,y);if(m>1){x/=m;y/=m}
+ P.x=clamp(P.x+x*292*dt,14,W-14);P.y=clamp(P.y+y*292*dt,132,H-14);
+}
+
+function showBanner(main,sub='',dur=.9){
+ const el=$('#banner');el.innerHTML=`<div style="font-size:36px">${main}</div><div style="font-size:11px;opacity:.72;margin-top:3px">${sub}</div>`;
+ el.style.transition='none';el.style.opacity='1';el.dataset.life=dur;
+}
+function updateBanner(dt){
+ const el=$('#banner');let life=parseFloat(el.dataset.life||'0');if(life<=0)return;
+ life-=dt;el.dataset.life=life;if(life<.3){el.style.transition='opacity .3s';el.style.opacity=String(Math.max(0,life/.3))}
+}
+
+function branchTotals(){
+ const totals={CHAIN:0,RISK:0,RETURN:0};
+ for(const [k,v] of Object.entries(upgrades)){
+  if(!v)continue;
+  const b=CARD_INFO[k]?.branch||'UTILITY';
+  totals[b]+=v;
+ }
+ return totals;
+}
+
+function valueText(type,rank){
+ if(type==='echo')return rank===0?'FLOW残留 0%':`FLOW残留 ${[0,20,34,45][rank]}%`;
+ if(type==='momentum')return rank===0?'CHAIN bonus 0%':`CHAIN時 +${[0,12,20,28][rank]}% FLOW`;
+ if(type==='risk')return rank===0?'危険時 bonus 0%':`危険時 FLOW +${[0,50,85,120][rank]}%`;
+ if(type==='focus')return rank===0?'同色 bonus 0%':`同色維持 最大 +${[0,35,60,90][rank]}%`;
+ if(type==='drive')return rank===0?'返却弾 BASE':`返却弾 Rank ${rank}`;
+ if(type==='burst')return rank===0?'追加弾 0':`追加追尾弾 ${[0,8,13,18][rank]}`;
+ return `Rank ${rank}`;
+}
+
+function openUpgrade(){
+ if(pausedUpgrade||dead||won)return;
+ pausedUpgrade=true;running=false;clearingWave=false;clearTimer=0;bullets=[];flow=0;lastFlowPid=null;
+
+ const totals=branchTotals();
+ const strongest=Object.entries(totals).sort((a,b)=>b[1]-a[1])[0];
+ const active=Object.entries(totals).filter(([,v])=>v>0).map(([k,v])=>`${k} ${v}`).join(' / ')||'まだ方向なし';
+ $('#draftSummary').textContent=`CURRENT BUILD：${active}`;
+
+ const cards=$('#cards');cards.innerHTML='';
+ const order=DRAFTS[Math.min(choiceCount,DRAFTS.length-1)];
+ order.forEach((type,i)=>{
+  const rank=Math.min(3,upgrades[type]+1),info=CARD_INFO[type];
+  const currentRank=upgrades[type];
+  const branchTotal=totals[info.branch]||0;
+  let relation='NEW DIRECTION';
+  if(currentRank>0)relation='DIRECT UPGRADE';
+  else if(branchTotal>0)relation='SYNERGY';
+  if(strongest && strongest[1]>0 && strongest[0]===info.branch)relation='BUILD SYNERGY';
+
+  const el=document.createElement('div');el.className='card';el.dataset.choice=type;
+  el.innerHTML=
+   `<span class="key">${i+1}</span>`+
+   `<b>${info.name}</b>`+
+   `<em>${info.branch} · ${relation}</em>`+
+   `<div style="font-size:12px;font-weight:900;margin:8px 0 7px">${valueText(type,currentRank)} <span style="opacity:.45">→</span> ${valueText(type,rank)}</div>`+
+   `<small>${info.desc(rank)}</small>`;
+  el.addEventListener('click',()=>chooseUpgrade(type));cards.appendChild(el);
+ });
+ $('#upgrade').classList.add('show');
+}
+
+function chooseUpgrade(type){
+ if(!pausedUpgrade)return;
+ upgrades[type]=Math.min(3,upgrades[type]+1);choiceCount++;sfx('upgrade');renderBuildPanel(true);
+ pausedUpgrade=false;$('#upgrade').classList.remove('show');
+ const next=waveIndex+1;
+ if(next>=WAVES.length){showResult(true);return}
+ spawnWave(next);running=true;
+ try{R.focus({preventScroll:true})}catch(_){R.focus()}
+ hud();
+}
+
+function buildName(){
+ const groups={CHAIN:0,RISK:0,RETURN:0};
+ for(const [k,v] of Object.entries(upgrades))if(v){
+  const b=CARD_INFO[k]?.branch||'UTILITY';groups[b]+=v;
+ }
+ const ordered=Object.entries(groups).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+ return ordered.length?ordered.map(([k,v])=>k+' '+v).join(' / '):'BASE';
+}
+
+let buildPanelSignature='';
+function renderBuildPanel(force=false){
+ const sig=JSON.stringify(upgrades);
+ if(!force && sig===buildPanelSignature)return;
+ buildPanelSignature=sig;
+
+ const el=$('#buildPanel');
+ el.innerHTML='';
+ for(const [k,v] of Object.entries(upgrades))if(v){
+  const d=document.createElement('div');
+  d.className='buildTag';
+  d.textContent=CARD_INFO[k].name+' ×'+v;
+  el.appendChild(d);
+ }
+}
+
+let enemyBarsSignature='';
+function renderEnemyBars(force=false){
+ const sig=bossMode?`B:${Math.ceil(bossCore.hp/bossCore.max*100)}:${[0,2,3].map(p=>emitterSilence[p]>0?1:0).join('')}:${bossBreak>0?1:0}`:emitters.map(e=>`${e.pid}:${e.alive?1:0}:${Math.ceil(clamp(e.hp/e.max,0,1)*100)}`).join('|');
+ if(!force&&sig===enemyBarsSignature)return;enemyBarsSignature=sig;
+ const box=$('#enemyBars');box.innerHTML='';
+ if(bossMode){
+  $('#enemyCount').textContent=bossBreak>0?'BREAK OPEN':'3 COLORS';
+  const corePct=clamp(bossCore.hp/bossCore.max,0,1),core=document.createElement('div');core.className='enemyLine';
+  core.innerHTML=`<span>CORE</span><div class="bar"><div class="efill" style="width:${corePct*100}%;background:#dff7ff"></div></div><span>${Math.ceil(corePct*100)}%</span>`;box.appendChild(core);
+  for(const pid of [0,2,3]){const sil=emitterSilence[pid]>0,row=document.createElement('div');row.className='enemyLine';row.innerHTML=`<span>${PNAME[pid]}</span><div class="bar"><div class="efill" style="width:100%;background:${PCOLOR[pid]};opacity:${sil?.22:1}"></div></div><span>${sil?'SILENCED':'ACTIVE'}</span>`;box.appendChild(row)}
+  return;
+ }
+ const alive=aliveEmitters();$('#enemyCount').textContent=alive.length+' LEFT';
+ for(const e of emitters){const row=document.createElement('div');row.className='enemyLine',pct=clamp(e.hp/e.max,0,1);row.innerHTML=`<span>${PNAME[e.pid]}</span><div class="bar"><div class="efill" style="width:${pct*100}%;background:${PCOLOR[e.pid]};opacity:${e.alive?1:.18}"></div></div><span>${e.alive?Math.ceil(pct*100)+'%':'DOWN'}</span>`;box.appendChild(row)}
+}
+
+function showResult(success){
+ if($('#result').classList.contains('show'))return;
+ won=success;running=false;dead=!success&&P.hp<=0;
+ $('#result').classList.add('show');
+ $('#resultTitle').textContent=success?'PATTERN HIJACK — CLEAR':'RUN OVER';
+ $('#resultText').innerHTML=
+  `WAVES <b>${wavesCleared+(success?1:0)}/5</b>　/　HIJACK <b>${hijacks}</b>　/　MAX CHAIN <b>${maxChain}</b>`+
+  `<br>STOLEN BULLETS <b>${stolen}</b>　/　CORE BREAKS <b>${breaks}</b>`+
+  `<br><br>BUILD: <b>${buildName()}</b>`+
+  `<br><br>${success?'v1.0 Prototype Complete — 危険へ入り、奪い、連鎖してBossを破壊した。':'FLOWを貯める場所と返す色を変えて再挑戦。'}`;
+}
+
+function update(dt){
+ updateBanner(dt);
+ if(!running||dead||won||pausedUpgrade)return;
+ if(clearingWave){clearTimer-=dt;if(clearTimer<=0)openUpgrade();return}
+ if(hijackFx){hijackFx.age+=dt;if(hijackFx.age>=hijackFx.dur)hijackFx=null}
+ flash=Math.max(0,flash-dt);shake=Math.max(0,shake-dt*35);overdrive=Math.max(0,overdrive-dt);
+ bossBreak=Math.max(0,bossBreak-dt);for(let i=0;i<4;i++)emitterSilence[i]=Math.max(0,emitterSilence[i]-dt);
+ chainWindow=Math.max(0,chainWindow-dt);if(chainWindow<=0){chainCount=0;lastCapturedPid=null}
+ if(freeze>0){freeze=Math.max(0,freeze-dt);return}
+ inv=Math.max(0,inv-dt);move(dt);autoFire(dt);emitPatterns(dt);
+
+ const nearBy=[0,0,0,0],nearest=[1e9,1e9,1e9,1e9];
+ for(let i=bullets.length-1;i>=0;i--){
+  const b=bullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
+  if(b.friendly){
+   let hit=false;
+   if(bossMode){
+    if(Math.hypot(b.x-bossCore.x,b.y-bossCore.y)<bossCore.r+b.r){applyDamageToBossCore(b.damage??1);bullets.splice(i,1);hit=true}
+   }else{
+    for(const e of aliveEmitters()){
+     if(Math.hypot(b.x-e.x,b.y-e.y)<15+b.r){applyDamageToEmitter(e,b.damage??1,b);bullets.splice(i,1);hit=true;break}
+    }
+   }
+   if(hit)continue;
+  }else{
+   const d=Math.hypot(b.x-P.x,b.y-P.y),hit=P.r+b.r;
+   if(d<hit){bullets.splice(i,1);hurt();continue}
+   if(b.pid>=0){nearest[b.pid]=Math.min(nearest[b.pid],d);if(d<hit+52)nearBy[b.pid]++}
+  }
+  if(b.life<=0||b.x<-130||b.x>W+130||b.y<-130||b.y>H+130)bullets.splice(i,1);
+ }
+
+ let totalNear=0,best=-1,bestD=1e9;
+ for(let pid=0;pid<4;pid++){
+  totalNear+=nearBy[pid];
+  if(nearBy[pid]>0&&nearest[pid]<bestD){best=pid;bestD=nearest[pid]}
+ }
+ nearNow=totalNear;maxDensity=Math.max(maxDensity,nearNow);
+ if(waveIndex===0&&!tutorial.flow&&flow>=.32){
+  tutorial.flow=true;
+  showBanner('TARGET = LAST COLOR','FLOW 100%でその色をHIJACK',1.0);
+ }
+
+ if(best>=0){
+  if(focusPid===best)focusTime=Math.min(2.5,focusTime+dt);else{focusPid=best;focusTime=0}
+  lastFlowPid=best;
+  let mult=1;
+  if(upgrades.risk>0&&nearNow>=4)mult*=1+[0,.50,.85,1.20][upgrades.risk];
+  if(upgrades.focus>0)mult*=1+Math.min(1,focusTime/1.6)*[0,.35,.60,.90][upgrades.focus];
+  const actTempo=1+waveIndex*.07;
+  flow=Math.min(maxFlow(),flow+dt*.295*actTempo*mult*Math.min(3.65,1+nearNow*.21));
+ }else{
+  focusTime=Math.max(0,focusTime-dt*1.5);
+  flow=Math.max(0,flow-dt*.13);if(flow<=.001){flow=0;lastFlowPid=null}
+ }
+
+ if(flow>=1&&lastFlowPid!==null)hijack();
+
+ if(bullets.length>MAX_BULLETS){
+  // O(N) compaction, retaining player projectiles where possible.
+  let excess=bullets.length-MAX_BULLETS;
+  bullets=bullets.filter(b=>{if(excess>0&&!b.friendly){excess--;return false}return true});
+  if(bullets.length>MAX_BULLETS)bullets.splice(0,bullets.length-MAX_BULLETS);
+ }
+ hud();
+}
+
+function hud(){
+ $('#hp').textContent='HP '+('●'.repeat(Math.max(0,P.hp)))+('○'.repeat(Math.max(0,P.max-P.hp)));
+ $('#stageText').textContent=bossMode?'FINAL BOSS':'WAVE '+(waveIndex+1)+'/4';
+ $('#objective').textContent=bossMode?(bossBreak>0?'CORE BREAK — ATTACK!':'HIJACK 3 COLORS'):'DESTROY EMITTERS';
+ $('#bossText').textContent=bossMode?(bossBreak>0?'BREAK':'SHIELDED'):'WAVE '+(waveIndex+1);
+ $('#hijacks').textContent=hijacks;$('#stolen').textContent=stolen;$('#maxChain').textContent=maxChain;
+ $('#maxDensity').textContent=maxDensity;$('#waves').textContent=wavesCleared;$('#breaks').textContent=breaks;$('#build').textContent=buildName();
+ $('#flow').style.width=(flow/maxFlow()*100).toFixed(1)+'%';
+ const c=lastFlowPid===null?'TARGET --':'TARGET '+PNAME[lastFlowPid];
+ const d=nearNow===0?'SAFE':nearNow<3?'FLOW':nearNow<6?'DENSE':'DANGER ×'+nearNow;
+ $('#density').textContent=(chainWindow>0?'CHAIN '+chainWindow.toFixed(1)+'s · ':'')+c+' · '+d;
+ renderEnemyBars();renderBuildPanel();
+}
+
+function drawHijack(){
+ if(!hijackFx)return;
+ const t=hijackFx.age;let scale=1.18,alpha=1;
+ if(t<.1){const q=t/.1;scale=1.9-.72*q}else if(t>.42){const q=(t-.42)/.36;scale=1.18-.08*q;alpha=1-q}
+ X.save();X.translate(W/2,H/2);X.scale(scale,scale);X.textAlign='center';X.lineJoin='round';X.globalAlpha=Math.max(0,alpha);
+ const main=hijackFx.chain>1?'CHAIN ×'+hijackFx.chain:'HIJACK';
+ X.font='1000 96px system-ui';X.lineWidth=17;X.strokeStyle='rgba(5,10,20,.94)';X.strokeText(main,0,10);
+ X.shadowBlur=34;X.shadowColor='rgba(125,220,255,1)';X.fillStyle='#fff';X.fillText(main,0,10);
+ X.font='1000 28px system-ui';X.shadowBlur=12;X.fillStyle=PCOLOR[PNAME.indexOf(hijackFx.label)]||'#bdefff';
+ X.fillText(hijackFx.label+' × '+hijackFx.count,0,58);X.restore();
+}
+
+function draw(){
+ X.clearRect(0,0,W,H);X.save();
+ if(shake>0)X.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+ const grd=X.createLinearGradient(0,0,0,H);grd.addColorStop(0,'#111827');grd.addColorStop(1,'#090c13');X.fillStyle=grd;X.fillRect(0,0,W,H);
+ X.strokeStyle='rgba(255,255,255,.022)';
+ for(let x=0;x<W;x+=48){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}
+ for(let y=0;y<H;y+=48){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}
+
+ for(const e of emitters){
+  X.save();const sil=bossMode&&emitterSilence[e.pid]>0;X.globalAlpha=sil?.20:(e.alive?1:.16);X.shadowBlur=(e.alive&&!sil)?20:0;X.shadowColor=PCOLOR[e.pid];X.fillStyle=PCOLOR[e.pid];
+  X.beginPath();X.arc(e.x,e.y,15,0,Math.PI*2);X.fill();X.strokeStyle='rgba(255,255,255,.75)';X.lineWidth=2;X.stroke();X.restore();
+ }
+ if(bossMode){X.save();X.fillStyle=bossBreak>0?'#e9fbff':'#687386';X.shadowBlur=bossBreak>0?30:7;X.shadowColor=bossBreak>0?'#bdefff':'#687386';X.beginPath();X.arc(bossCore.x,bossCore.y,bossCore.r,0,Math.PI*2);X.fill();X.strokeStyle=bossBreak>0?'#fff':'rgba(255,255,255,.35)';X.lineWidth=3;X.stroke();X.restore()}
+
+ for(const b of bullets){
+  if(b.friendly){
+   X.fillStyle=b.auto?'#d8e7ff':'#b9eaff';X.shadowBlur=b.auto?4:15;X.shadowColor=b.auto?'#d8e7ff':'#9be4ff';
+  }else{
+   X.shadowBlur=0;const near=Math.hypot(b.x-P.x,b.y-P.y)<P.r+b.r+52;X.fillStyle=near?'#fff3b3':(PCOLOR[b.pid]||'#d56f7f');
+  }
+  X.beginPath();X.arc(b.x,b.y,b.r,0,Math.PI*2);X.fill();
+ }
+
+ X.shadowBlur=0;
+ X.strokeStyle=overdrive>0?'rgba(190,240,255,.96)':flow>=1?'rgba(255,225,140,.98)':flow>.45?'rgba(170,220,255,.68)':'rgba(235,240,255,.24)';
+ X.lineWidth=overdrive>0?4:flow>=1?4:2;X.beginPath();X.arc(P.x,P.y,P.r+24+Math.min(1,flow)*10,0,Math.PI*2);X.stroke();
+ if(inv<=0||Math.floor(inv*14)%2===0){X.fillStyle='#f5f6fb';X.beginPath();X.arc(P.x,P.y,P.r,0,Math.PI*2);X.fill()}
+ drawHijack();X.restore();
+ R.style.filter=flash>0?'brightness('+(1+flash*.55)+')':'none';
+}
+
+function frame(n){
+ if(!R.isConnected)return;
+ const dt=Math.min(.033,(n-last)/1000||0);last=n;update(dt);draw();requestAnimationFrame(frame);
+}
+
+function beginRun(){
+ initAudio();if(audio?.state==='suspended')audio.resume();
+ reset(true);running=true;sfx('start');
+ try{R.focus({preventScroll:true})}catch(_){R.focus()}
+}
+
+document.getElementById('startBtn').addEventListener('click',beginRun);
+document.getElementById('restart').addEventListener('click',()=>reset(false));
+document.getElementById('resultRestart').addEventListener('click',()=>reset(false));
+
+R.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(pausedUpgrade&&['1','2','3'].includes(k)){const card=$('#cards').children[Number(k)-1];if(card)chooseUpgrade(card.dataset.choice);e.preventDefault();return}
+ if(!running&&$('#startOverlay').classList.contains('show')&&(k==='enter'||k===' ')){beginRun();e.preventDefault();return}
+ if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){K[k]=true;e.preventDefault()}
+});
+R.addEventListener('keyup',e=>{K[e.key.toLowerCase()]=false});
+C.addEventListener('pointerdown',e=>{
+ if(pausedUpgrade||dead||won||!running)return;
+ drag=true;dragId=e.pointerId;const r=C.getBoundingClientRect();target={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
+ try{C.setPointerCapture(e.pointerId)}catch(_){};e.preventDefault()
+});
+C.addEventListener('pointermove',e=>{
+ if(!drag||e.pointerId!==dragId)return;
+ const r=C.getBoundingClientRect();target={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};e.preventDefault()
+});
+function endDrag(e){if(e.pointerId!==dragId)return;drag=false;dragId=null;target=null;e.preventDefault()}
+C.addEventListener('pointerup',endDrag);C.addEventListener('pointercancel',endDrag);C.addEventListener('contextmenu',e=>e.preventDefault());
+
+document.addEventListener('visibilitychange',()=>{last=performance.now()});
+reset(false);requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
