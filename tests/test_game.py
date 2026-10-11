@@ -31,6 +31,7 @@ window.__PATTERN_TEST__ = {
   const e=emitters[0];e.alive=true;e.hp=.01;
   bullets.push({x:e.x,y:e.y,vx:0,vy:0,r:3,friendly:true,auto:false,damage:2,life:1});
  },
+ forceGameOver: () => {P.hp=0;dead=true;running=false;showResult(false)},
  tick: dt => update(dt),
 };
 '''
@@ -97,6 +98,30 @@ with sync_playwright() as p:
  page.wait_for_timeout(700)
  check(not state()['running'] and not page.locator('#upgrade').is_visible(), 'Restart during transition cannot open stale upgrade')
  check(len(errors)==0,'No JS exceptions after restart-during-transition')
+ # Mobile regression: stage is very short on phones; overlays must escape it.
+ # Emulate portrait, landscape, and compact touch screens and use actual taps.
+ for width,height in [(390,844),(844,390),(320,568)]:
+  mobile=browser.new_page(viewport={'width':width,'height':height},device_scale_factor=3,is_mobile=True,has_touch=True)
+  mobile_errors=[]
+  mobile.on('pageerror',lambda e: mobile_errors.append(str(e)))
+  mobile.set_content(TEST_HTML,wait_until='load')
+  prefix=f'Mobile {width}x{height}'
+  mobile.locator('#startBtn').tap(timeout=5000)
+  check(mobile.evaluate('window.__PATTERN_TEST__.state().running'),prefix+' START tap works')
+  mobile.locator('#restart').tap(timeout=5000)
+  check(mobile.locator('#startBtn').is_visible(),prefix+' header RESTART tap works')
+  mobile.locator('#startBtn').tap(timeout=5000)
+  mobile.evaluate('window.__PATTERN_TEST__.clearWave()')
+  mobile.wait_for_timeout(650)
+  check(mobile.locator('#upgrade').is_visible(),prefix+' upgrade overlay is displayed')
+  mobile.locator('#cards .card').last.tap(timeout=5000)
+  check(mobile.evaluate('window.__PATTERN_TEST__.state().waveIndex')==1,prefix+' upgrade card tap works')
+  mobile.evaluate('window.__PATTERN_TEST__.forceGameOver()')
+  check(mobile.locator('#resultRestart').is_visible(),prefix+' game over overlay appears')
+  mobile.locator('#resultRestart').tap(timeout=5000)
+  check(mobile.locator('#startBtn').is_visible() and not mobile.evaluate('window.__PATTERN_TEST__.state().running'),prefix+' PLAY AGAIN tap works')
+  check(not mobile_errors,prefix+' no JavaScript exceptions')
+  mobile.close()
  browser.close()
 
 print('ALL BROWSER TESTS PASS')
